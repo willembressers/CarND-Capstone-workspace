@@ -8,6 +8,7 @@ from scipy.spatial import KDTree
 
 import math
 
+
 LOOKAHEAD_WPS = 150 # Number of waypoints we will publish. You can change this number
 MAX_DECEL = .5 # Maximum deceleration to keep up a nice drive-behaviour
 
