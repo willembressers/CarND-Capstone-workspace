@@ -50,25 +50,29 @@ pip install -r requirements.txt
 3. Make and run styx
 ```bash
 cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
+./compile_and_run.sh
 ```
-4. Run the simulator
 
-### Real world testing
-1. Download [training bag](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic_light_bag_file.zip) that was recorded on the Udacity self-driving car.
-2. Unzip the file
-```bash
-unzip traffic_light_bag_file.zip
-```
-3. Play the bag file
-```bash
-rosbag play -l traffic_light_bag_file/traffic_light_training.bag
-```
-4. Launch your project in site mode
-```bash
-cd CarND-Capstone/ros
-roslaunch launch/site.launch
-```
-5. Confirm that traffic light detection works on real life images
+## Final Result
+
+![](https://www.youtube.com/watch?v=oSip2g0C8qc)
+
+For this project i had to develop and ROS implementation that controls the Udacity car in a simulator. The project consisted of 4 parts
+
+### Waypoint updater
+The Waypoint updater is the first part to develop. It recieves all the trajectory waypoints from the `\base_waypoints` ROS topic. The updater will the build an `KDTree` of all the waypoints which is fast and searchable. Once the tree is build, the updater will constantly publish a set of waypoints to `final_waypoints`. These waypoints are published with a frequency of 10 Hertz, and consist of 150 waypoints ahead. If within these 150 waypoints a traffic light is detected, then the updater will automatically adjust the waypoints in order to decelerate.
+
+### Drive-by-wire
+The next part is the ROS DBW (drooive-by-wire) node. This node reads the car parameters (like, vehicle mass, wheel radius, steer ratio, etc) from the ROS configuration, and uses it to initialize the `twist` controller. Once the `twist` controller is initialized, the DBW node will run with a frequency of 50Hz and collect the new throttle, brake and steering angle, in order to publish it to the vehicle command topics (like `/vehicle/steering_cmd`). If for some reason the `drive-by-wire` is disabled, then the node WONT publish any commands to the topic and let the user (passengers) take over control.
+
+### Twist controller
+The twist controller is initialized from within the `drive-by-wire` node. The main purpose of this controller is to calculate the throtlle, brake and steering angle in order to achieve the appropriate speed and direction according to the waypoints. The twist controllor incorporates a `yaw` controller which is responsible for steering angle. It takes the `wheel base`, `steer ratio`, `maximum lateral acceleration` and `maximum steering angle` into considderation. The twist controller uses a PID (Proportional Integral Differential) model in order to control the throttle. The PID controller calculates the appropriate throttle based on the current velocity and target velocity, so that it doesn't accelerate to slow, but also not to fast and overshoot it's target velocity and passing the speed limit. Default the brakes are released within the twist controller, but when the car must decelerate it will calculate the deceleration so that it will transition smoothly.
+
+### Traffic light detector
+The last part is the traffic light detector. This detector loads a predefined list of all traffic lights and maps them onto the waypoints. The traffic light detector will look for the closest traffic light within the waypoints and fetch the state (red, orange, green). This will be used by the waypoint updater to update the waypoints, and this will trigger the drive-by-wire and twist controller in order to stop the car (when there is a red sign detected).
+
+### Development
+I've had several issues getting the code up and running locally. i've tried 4 times to setup a Ubuntu virtual machine locally, (i'm used to work in virtual machined) but i've had many difficulties setting up the python environment, and the simulator. So eventually i chose to work in the Udacity workspace. This was quite conveniant, but i had to take an eye on the GPU hours. Also here were many difficulties, most of them resided in that the car dodn't follow it's waypoint trajectory. I'vre refreshed the workspace 3 times, until i eventually got the car following the waypoints. Due to all these difficulties i burnt most of the GPU hours, so training a image classifier wasnt an option anymore.
+
+When i finalized my code, i've setup a screen recording for the (youtube) video. I noticed that my car passed a red traffic light. I noticed that this is because the drive-by-wire has an hardcode brake of 10. so this means that it's a linear function and overshoots the target waypoint (stopline). I choose the easiest sollution and that is to look futher ahead, so a red traffic light is noticed earlier, and thus the linear breaking suffies.
+
