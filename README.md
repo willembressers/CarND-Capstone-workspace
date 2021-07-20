@@ -55,6 +55,7 @@ cd ros
 
 ## Final Result
 
+my (youtube) results: https://www.youtube.com/watch?v=oSip2g0C8qc
 ![](https://www.youtube.com/watch?v=oSip2g0C8qc)
 
 For this project i had to develop and ROS implementation that controls the Udacity car in a simulator. The project consisted of 4 parts
