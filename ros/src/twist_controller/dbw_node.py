@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 import math
@@ -69,6 +69,8 @@ class DBWNode(object):
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/stop_for_tl', Int32, self.stop_for_tl_cb)
         
         self.current_vel = None
         self.curr_ang_vel = None
@@ -76,6 +78,8 @@ class DBWNode(object):
         self.linear_vel = None
         self.angular_vel = None
         self.throttle = self.steering = self.brake = 0
+        self.traffic = None
+        self.stop_for_tl = None
 
         self.loop()
 
@@ -90,6 +94,10 @@ class DBWNode(object):
                                                                     self.linear_vel,
                                                                     self.angular_vel)
                 
+            if self.stop_for_tl:
+                self.throttle = 0.0
+                self.brake = 10.0
+                
             if self.dbw_enabled:
               self.publish(self.throttle, self.brake, self.steering)
             rate.sleep()
@@ -103,6 +111,12 @@ class DBWNode(object):
 
     def velocity_cb(self, msg):
         self.current_vel = msg.twist.linear.x
+        
+    def traffic_cb(self, msg):
+        self.traffic = msg.data
+
+    def stop_for_tl_cb(self, msg):
+        self.stop_for_tl = msg.data
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
